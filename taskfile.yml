@@ -1,0 +1,52 @@
+version: '3'
+vars:
+  APP_NAME: "mark"
+  RELEASE_DIR: "./.release"
+  BUILD_TARGET: "./{{.APP_NAME}}"
+  # The commit is the release, so `task build` stamps the same short rev that
+  # `nix build` does. A local build keeps a real timestamp; the nix build
+  # hardcodes "nix" to stay reproducible.
+  VERSION:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo dirty
+  BUILD_DATE:
+    sh: date -u +%Y-%m-%dT%H:%M:%SZ
+  LDFLAGS: >-
+    -X github.com/oschrenk/mark/internal/cli.Version={{.VERSION}} -X github.com/oschrenk/mark/internal/cli.Commit={{.VERSION}} -X github.com/oschrenk/mark/internal/cli.BuildDate={{.BUILD_DATE}}
+tasks:
+  run:
+    cmds:
+      - go run -ldflags '{{.LDFLAGS}}' ./cmd/mark
+    silent: true
+  check:
+    cmds:
+      - staticcheck ./...
+  vet:
+    cmds:
+      - go vet ./...
+  tidy:
+    deps: [vet]
+    cmds:
+      - go mod tidy
+  lint:
+    deps: [check, tidy]
+  build:
+    cmds:
+      - go build -v -ldflags '{{.LDFLAGS}}' -o "{{.BUILD_TARGET}}" ./cmd/mark
+    silent: true
+  test:
+    cmds:
+      - go test ./...
+    silent: true
+  install:
+    desc: Install to $GOPATH/bin/ and fish completion
+    cmds:
+      - go install -ldflags '{{.LDFLAGS}}' ./cmd/mark
+      - mkdir -p ~/.config/fish/completions
+      - go run -ldflags '{{.LDFLAGS}}' ./cmd/mark completion fish > ~/.config/fish/completions/{{.APP_NAME}}.fish
+    silent: true
+  uninstall:
+    desc: Remove from $GOPATH/bin/ and fish completion
+    cmds:
+      - rm -f $(go env GOPATH)/bin/{{.APP_NAME}}
+      - rm -f ~/.config/fish/completions/{{.APP_NAME}}.fish
+    silent: true

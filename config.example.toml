@@ -1,0 +1,8 @@
+# Copy to $XDG_CONFIG_HOME/mark/config.toml, or ~/.config/mark/config.toml.
+
+[targets.homelab]
+default = true
+# Prometheus only serves this path with --web.enable-remote-write-receiver.
+url = "http://pi-2:9090/api/v1/write"
+# Optional. Defaults to homelab_event.
+metric = "homelab_event"

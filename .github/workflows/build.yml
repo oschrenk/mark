@@ -1,0 +1,30 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Only aarch64-darwin is cached. flake.nix still offers the two linux
+  # systems; a pi builds those from source.
+  darwin:
+    runs-on: macos-latest
+    steps:
+      - uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: oschrenk
+          # A write token for the cache, generated in its settings on
+          # app.cachix.org, stored as the CACHIX_AUTH_TOKEN repository secret.
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      # Built from the github: ref rather than from a checkout, because the
+      # version is `self.shortRev` and the source hash must match what a
+      # consumer evaluates. A different hash is a cache miss, so there is no
+      # checkout step. Paths built here are pushed by cachix-action.
+      - run: nix build "github:oschrenk/mark/$GITHUB_SHA" --print-build-logs

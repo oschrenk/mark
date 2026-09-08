@@ -1,0 +1,6 @@
+/mark
+.release/
+.DS_Store
+.direnv/
+result
+result-*
